@@ -3,17 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dr Mario Accumulate</title>
+<title>Dr Mario UX Fix</title>
 <style>
-body{text-align:center;font-family:sans-serif;}
-.wrap{display:flex;justify-content:center;gap:20px;}
-canvas{background:#111;}
-button{margin:5px;padding:10px;}
+body{
+  text-align:center;
+  font-family:sans-serif;
+  margin:0;
+}
+
+.wrap{
+  display:flex;
+  justify-content:center;
+  gap:15px;
+  margin-top:10px;
+}
+
+canvas{
+  background:#111;
+}
+
+/* 操作ボタン（重要） */
+.controls{
+  margin-top:10px;
+}
+
+.controls button{
+  margin:5px;
+  padding:12px 18px;
+  font-size:16px;
+}
+
+/* 下部統計 */
+.stats{
+  margin-top:20px;
+  padding:10px;
+  border-top:1px solid #ccc;
+  font-size:14px;
+}
+
 </style>
 </head>
 <body>
 
-<h2>🧪 ドクターマリオ Accumulate</h2>
+<h2>🧪 ドクターマリオ UX版</h2>
 
 <div class="wrap">
   <canvas id="game" width="180" height="360"></canvas>
@@ -23,22 +55,24 @@ button{margin:5px;padding:10px;}
   </div>
 </div>
 
-<h3>今回</h3>
-<p>スコア：<span id="runScore">0</span></p>
+<!-- 操作ボタン（中央寄せ） -->
+<div class="controls">
+  <button onclick="move(-1)">←</button>
+  <button onclick="move(1)">→</button>
+  <button onclick="rotate()">回転</button>
+  <button onclick="drop()">↓</button>
+  <br>
+  <button onclick="newGame()">🔄 ニューゲーム</button>
+</div>
 
-<h3>通算</h3>
-<p>スコア：<span id="totalScore">0</span></p>
-<p>累計ウイルス：<span id="totalVirus">0</span></p>
-<p>2個以上同時消し：<span id="multi2">0</span></p>
-<p>横消し回数：<span id="horizontal">0</span></p>
-
-<button onclick="move(-1)">←</button>
-<button onclick="move(1)">→</button>
-<button onclick="rotate()">回転</button>
-<button onclick="drop()">↓</button>
-
-<br>
-<button onclick="newGame()">🔄 ニューゲーム</button>
+<!-- 下部に統計 -->
+<div class="stats">
+  <p>今回スコア：<span id="runScore">0</span></p>
+  <p>通算スコア：<span id="totalScore">0</span></p>
+  <p>累計ウイルス：<span id="totalVirus">0</span></p>
+  <p>2個以上同時消し：<span id="multi2">0</span></p>
+  <p>横消し回数：<span id="horizontal">0</span></p>
+</div>
 
 <script>
 const COLS=6,ROWS=12,SIZE=30;
@@ -127,6 +161,7 @@ function draw(){
 function drawNext(){
   const ctx=next.getContext("2d");
   ctx.clearRect(0,0,60,60);
+
   getBlocks(nextPiece).forEach((b,i)=>{
     ctx.fillStyle=nextPiece.colors[i];
     ctx.fillRect((b.x+1)*20,(b.y+1)*20,20,20);
@@ -141,6 +176,7 @@ function move(d){
 function rotate(){
   let old=piece.rot;
   piece.rot=(piece.rot+1)%4;
+
   if(collision()){
     piece.x++;
     if(collision()){
@@ -267,12 +303,18 @@ function gravity(){
 }
 
 function updateUI(){
-  document.getElementById("runScore").textContent=runScore;
-  document.getElementById("totalScore").textContent=totalScore;
-  document.getElementById("totalVirus").textContent=totalVirus;
-  document.getElementById("multi2").textContent=multi2;
-  document.getElementById("horizontal").textContent=horizontal;
+  runScoreEl.textContent=runScore;
+  totalScoreEl.textContent=totalScore;
+  totalVirusEl.textContent=totalVirus;
+  multi2El.textContent=multi2;
+  horizontalEl.textContent=horizontal;
 }
+
+const runScoreEl=document.getElementById("runScore");
+const totalScoreEl=document.getElementById("totalScore");
+const totalVirusEl=document.getElementById("totalVirus");
+const multi2El=document.getElementById("multi2");
+const horizontalEl=document.getElementById("horizontal");
 
 function gameClear(){
   gameActive=false;
