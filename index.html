@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dr Mario Ultimate Fix</title>
+<title>Dr Mario Accumulate</title>
 <style>
 body{text-align:center;font-family:sans-serif;}
 .wrap{display:flex;justify-content:center;gap:20px;}
@@ -13,7 +13,7 @@ button{margin:5px;padding:10px;}
 </head>
 <body>
 
-<h2>🧪 ドクターマリオ Ultimate</h2>
+<h2>🧪 ドクターマリオ Accumulate</h2>
 
 <div class="wrap">
   <canvas id="game" width="180" height="360"></canvas>
@@ -23,7 +23,11 @@ button{margin:5px;padding:10px;}
   </div>
 </div>
 
-<p>スコア：<span id="score">0</span></p>
+<h3>今回</h3>
+<p>スコア：<span id="runScore">0</span></p>
+
+<h3>通算</h3>
+<p>スコア：<span id="totalScore">0</span></p>
 <p>累計ウイルス：<span id="totalVirus">0</span></p>
 <p>2個以上同時消し：<span id="multi2">0</span></p>
 <p>横消し回数：<span id="horizontal">0</span></p>
@@ -44,27 +48,26 @@ let grid, piece, nextPiece;
 let virusCount=0;
 let gameActive=true;
 
-let score=0;
+// 今回
+let runScore=0;
+
+// 通算
+let totalScore=0;
 let totalVirus=0;
 let multi2=0;
 let horizontal=0;
 
 function newGame(){
   grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
-
-  score=0;
-  totalVirus=0;
-  multi2=0;
-  horizontal=0;
+  runScore=0;
 
   initVirus();
-
   piece=newPiece();
   nextPiece=newPiece();
 
   gameActive=true;
   updateUI();
-  draw(); // ★ここ重要
+  draw();
 }
 
 function initVirus(){
@@ -96,7 +99,7 @@ function getBlocks(p){
 }
 
 function draw(){
-  const ctx=document.getElementById("game").getContext("2d");
+  const ctx=game.getContext("2d");
   ctx.clearRect(0,0,180,360);
 
   for(let y=0;y<ROWS;y++){
@@ -122,9 +125,8 @@ function draw(){
 }
 
 function drawNext(){
-  const ctx=document.getElementById("next").getContext("2d");
+  const ctx=next.getContext("2d");
   ctx.clearRect(0,0,60,60);
-
   getBlocks(nextPiece).forEach((b,i)=>{
     ctx.fillStyle=nextPiece.colors[i];
     ctx.fillRect((b.x+1)*20,(b.y+1)*20,20,20);
@@ -139,7 +141,6 @@ function move(d){
 function rotate(){
   let old=piece.rot;
   piece.rot=(piece.rot+1)%4;
-
   if(collision()){
     piece.x++;
     if(collision()){
@@ -178,7 +179,6 @@ function lock(){
   getBlocks(piece).forEach((b,i)=>{
     let x=piece.x+b.x;
     let y=piece.y+b.y;
-
     if(y>=0){
       grid[y][x]={color:piece.colors[i],virus:false};
     }
@@ -231,15 +231,13 @@ function resolve(){
         grid[y][x]=null;
       });
 
-      score += virusThisTurn * 100 * chain;
+      let add = virusThisTurn * 100 * chain;
 
-      if(virusThisTurn>=2){
-        multi2++;
-      }
+      runScore += add;
+      totalScore += add;
 
-      if(isHorizontal && virusThisTurn>0){
-        horizontal++;
-      }
+      if(virusThisTurn >= 2) multi2++;
+      if(isHorizontal && virusThisTurn>0) horizontal++;
 
       gravity();
     }
@@ -269,7 +267,8 @@ function gravity(){
 }
 
 function updateUI(){
-  document.getElementById("score").textContent=score;
+  document.getElementById("runScore").textContent=runScore;
+  document.getElementById("totalScore").textContent=totalScore;
   document.getElementById("totalVirus").textContent=totalVirus;
   document.getElementById("multi2").textContent=multi2;
   document.getElementById("horizontal").textContent=horizontal;
@@ -278,7 +277,7 @@ function updateUI(){
 function gameClear(){
   gameActive=false;
 
-  const ctx=document.getElementById("game").getContext("2d");
+  const ctx=game.getContext("2d");
   ctx.fillStyle="white";
   ctx.font="18px sans-serif";
   ctx.fillText("おめでとう🎊",20,180);
@@ -288,13 +287,12 @@ function gameClear(){
   },2000);
 }
 
-// 落下（2秒）
 setInterval(()=>{
   drop();
   draw();
 },2000);
 
-// ★初回起動
+// 初期化
 newGame();
 </script>
 
