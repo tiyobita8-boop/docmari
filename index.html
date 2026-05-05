@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dr Mario Split Ver</title>
+<title>Dr Mario Virus Ver</title>
 <style>
 body{text-align:center;font-family:sans-serif;}
 canvas{background:#111;margin-top:10px;}
@@ -12,7 +12,7 @@ button{margin:5px;padding:10px;}
 </head>
 <body>
 
-<h2>🧪 ドクターマリオ（分断版）</h2>
+<h2>🧪 ドクターマリオ（ウイルス版）</h2>
 <canvas id="game" width="180" height="360"></canvas><br>
 
 <button onclick="move(-1)">←</button>
@@ -26,7 +26,17 @@ const colors=["red","blue","yellow"];
 
 let grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
 
+initVirus(); // ★追加
+
 let piece=newPiece();
+
+function initVirus(){
+  for(let i=0;i<10;i++){ // ウイルス10個
+    let x=Math.floor(Math.random()*COLS);
+    let y=Math.floor(Math.random()*(ROWS/2))+ROWS/2;
+    grid[y][x]={color:rand(),virus:true,link:null};
+  }
+}
 
 function newPiece(){
   return {
@@ -46,18 +56,22 @@ function draw(){
   const ctx=game.getContext("2d");
   ctx.clearRect(0,0,180,360);
 
-  // grid
   for(let y=0;y<ROWS;y++){
     for(let x=0;x<COLS;x++){
       if(grid[y][x]){
         ctx.fillStyle=grid[y][x].color;
         ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
+
+        // ウイルス表示
+        if(grid[y][x].virus){
+          ctx.fillStyle="#fff";
+          ctx.fillText("🦠",x*SIZE+5,y*SIZE+20);
+        }
       }
     }
   }
 
-  // piece
-  piece.blocks.forEach((b,i)=>{
+  piece.blocks.forEach(b=>{
     ctx.fillStyle=b.color;
     ctx.fillRect((piece.x+b.x)*SIZE,(piece.y+b.y)*SIZE,SIZE,SIZE);
   });
@@ -91,36 +105,28 @@ function collision(){
 }
 
 function lock(){
-  piece.blocks.forEach((b,i)=>{
+  piece.blocks.forEach(b=>{
     let x=piece.x+b.x;
     let y=piece.y+b.y;
     if(y>=0){
-      grid[y][x]={color:b.color,link:b.link};
+      grid[y][x]={color:b.color,link:b.link,virus:false};
     }
   });
 }
 
-// ★ここが核心：分断処理
 function breakLinks(x,y){
   let cell=grid[y][x];
   if(!cell||cell.link===null) return;
-
-  let nx=x+(cell.link===1?0:0);
   let ny=y+(cell.link===1?1:-1);
-
-  if(grid[ny]&&grid[ny][nx]){
-    grid[ny][nx].link=null;
-  }
+  if(grid[ny]&&grid[ny][x]) grid[ny][x].link=null;
   cell.link=null;
 }
 
-// 消去＋分断
 function resolve(){
   let changed=true;
 
   while(changed){
     changed=false;
-
     let remove=[];
 
     for(let y=0;y<ROWS;y++){
@@ -128,7 +134,6 @@ function resolve(){
         let c=grid[y][x];
         if(!c) continue;
 
-        // 横
         if(x<COLS-3 &&
           c.color===grid[y][x+1]?.color &&
           c.color===grid[y][x+2]?.color &&
@@ -136,7 +141,6 @@ function resolve(){
           remove.push([x,y],[x+1,y],[x+2,y],[x+3,y]);
         }
 
-        // 縦
         if(y<ROWS-3 &&
           c.color===grid[y+1]?.[x]?.color &&
           c.color===grid[y+2]?.[x]?.color &&
@@ -150,7 +154,7 @@ function resolve(){
       changed=true;
 
       remove.forEach(([x,y])=>{
-        breakLinks(x,y); // ←分断
+        breakLinks(x,y);
         grid[y][x]=null;
       });
 
@@ -159,13 +163,12 @@ function resolve(){
   }
 }
 
-// 落下
 function gravity(){
   for(let x=0;x<COLS;x++){
     for(let y=ROWS-1;y>=0;y--){
       if(!grid[y][x]){
         for(let k=y-1;k>=0;k--){
-          if(grid[k][x]){
+          if(grid[k][x] && !grid[k][x].virus){ // ★ウイルスは落ちない
             grid[y][x]=grid[k][x];
             grid[k][x]=null;
             break;
@@ -176,10 +179,11 @@ function gravity(){
   }
 }
 
+// ★ここ変更（速度半分）
 setInterval(()=>{
   drop();
   draw();
-},500);
+},1000);
 
 draw();
 </script>
