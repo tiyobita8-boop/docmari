@@ -3,18 +3,27 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dr Mario Virus Ver</title>
+<title>Dr Mario Next</title>
 <style>
 body{text-align:center;font-family:sans-serif;}
-canvas{background:#111;margin-top:10px;}
+.wrap{display:flex;justify-content:center;gap:20px;}
+canvas{background:#111;}
 button{margin:5px;padding:10px;}
 </style>
 </head>
 <body>
 
-<h2>🧪 ドクターマリオ（ウイルス版）</h2>
-<canvas id="game" width="180" height="360"></canvas><br>
+<h2>🧪 ドクターマリオ（ネクスト表示）</h2>
 
+<div class="wrap">
+  <canvas id="game" width="180" height="360"></canvas>
+  <div>
+    <p>Next</p>
+    <canvas id="next" width="60" height="60"></canvas>
+  </div>
+</div>
+
+<br>
 <button onclick="move(-1)">←</button>
 <button onclick="move(1)">→</button>
 <button onclick="rotate()">回転</button>
@@ -26,12 +35,13 @@ const colors=["red","blue","yellow"];
 
 let grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
 
-initVirus(); // ★追加
+initVirus();
 
 let piece=newPiece();
+let nextPiece=newPiece(); // ★追加
 
 function initVirus(){
-  for(let i=0;i<10;i++){ // ウイルス10個
+  for(let i=0;i<10;i++){
     let x=Math.floor(Math.random()*COLS);
     let y=Math.floor(Math.random()*(ROWS/2))+ROWS/2;
     grid[y][x]={color:rand(),virus:true,link:null};
@@ -62,7 +72,6 @@ function draw(){
         ctx.fillStyle=grid[y][x].color;
         ctx.fillRect(x*SIZE,y*SIZE,SIZE,SIZE);
 
-        // ウイルス表示
         if(grid[y][x].virus){
           ctx.fillStyle="#fff";
           ctx.fillText("🦠",x*SIZE+5,y*SIZE+20);
@@ -74,6 +83,18 @@ function draw(){
   piece.blocks.forEach(b=>{
     ctx.fillStyle=b.color;
     ctx.fillRect((piece.x+b.x)*SIZE,(piece.y+b.y)*SIZE,SIZE,SIZE);
+  });
+
+  drawNext(); // ★追加
+}
+
+function drawNext(){
+  const ctx=document.getElementById("next").getContext("2d");
+  ctx.clearRect(0,0,60,60);
+
+  nextPiece.blocks.forEach(b=>{
+    ctx.fillStyle=b.color;
+    ctx.fillRect((b.x+1)*20,(b.y+1)*20,20,20);
   });
 }
 
@@ -92,7 +113,10 @@ function drop(){
     piece.y--;
     lock();
     resolve();
-    piece=newPiece();
+
+    piece=nextPiece;        // ★ここ重要
+    piece.x=2; piece.y=0;
+    nextPiece=newPiece();   // ★次生成
   }
 }
 
@@ -168,7 +192,7 @@ function gravity(){
     for(let y=ROWS-1;y>=0;y--){
       if(!grid[y][x]){
         for(let k=y-1;k>=0;k--){
-          if(grid[k][x] && !grid[k][x].virus){ // ★ウイルスは落ちない
+          if(grid[k][x] && !grid[k][x].virus){
             grid[y][x]=grid[k][x];
             grid[k][x]=null;
             break;
@@ -179,7 +203,6 @@ function gravity(){
   }
 }
 
-// ★ここ変更（速度半分）
 setInterval(()=>{
   drop();
   draw();
