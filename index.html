@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dr Mario Final</title>
+<title>Dr Mario Ultimate</title>
 <style>
 body{text-align:center;font-family:sans-serif;}
 .wrap{display:flex;justify-content:center;gap:20px;}
@@ -13,7 +13,7 @@ button{margin:5px;padding:10px;}
 </head>
 <body>
 
-<h2>🧪 ドクターマリオ完成版</h2>
+<h2>🧪 ドクターマリオ Ultimate</h2>
 
 <div class="wrap">
   <canvas id="game" width="180" height="360"></canvas>
@@ -23,7 +23,11 @@ button{margin:5px;padding:10px;}
   </div>
 </div>
 
-<br>
+<p>スコア：<span id="score">0</span></p>
+<p>累計ウイルス：<span id="totalVirus">0</span></p>
+<p>2個以上同時消し：<span id="multi2">0</span></p>
+<p>横消し回数：<span id="horizontal">0</span></p>
+
 <button onclick="move(-1)">←</button>
 <button onclick="move(1)">→</button>
 <button onclick="rotate()">回転</button>
@@ -37,13 +41,21 @@ let grid, piece, nextPiece;
 let virusCount=0;
 let gameActive=true;
 
+// スコア系
+let score=0;
+let totalVirus=0;
+let multi2=0;
+let horizontal=0;
+
 initGame();
 
 function initGame(){
   grid=Array.from({length:ROWS},()=>Array(COLS).fill(null));
+  score=0;
   initVirus();
   piece=newPiece();
   nextPiece=newPiece();
+  updateUI();
 }
 
 function initVirus(){
@@ -52,22 +64,17 @@ function initVirus(){
     let x=Math.floor(Math.random()*COLS);
     let y=Math.floor(Math.random()*(ROWS/2))+ROWS/2;
     if(!grid[y][x]){
-      grid[y][x]={color:rand(),virus:true,link:null};
+      grid[y][x]={color:rand(),virus:true};
       virusCount++;
     }
   }
 }
 
 function newPiece(){
-  return {
-    x:2,y:0,rot:0,
-    colors:[rand(),rand()]
-  }
+  return {x:2,y:0,rot:0,colors:[rand(),rand()]};
 }
 
-function rand(){
-  return colors[Math.floor(Math.random()*3)];
-}
+function rand(){ return colors[Math.floor(Math.random()*3)]; }
 
 function getBlocks(p){
   if(p.rot===0) return [{x:0,y:0},{x:0,y:1}];
@@ -104,7 +111,6 @@ function draw(){
 function drawNext(){
   const ctx=next.getContext("2d");
   ctx.clearRect(0,0,60,60);
-
   getBlocks(nextPiece).forEach((b,i)=>{
     ctx.fillStyle=nextPiece.colors[i];
     ctx.fillRect((b.x+1)*20,(b.y+1)*20,20,20);
@@ -119,9 +125,8 @@ function move(d){
 function rotate(){
   let old=piece.rot;
   piece.rot=(piece.rot+1)%4;
-
   if(collision()){
-    piece.x++; // 壁キック簡易
+    piece.x++;
     if(collision()){
       piece.x--;
       piece.rot=old;
@@ -145,7 +150,7 @@ function drop(){
 }
 
 function collision(){
-  return getBlocks(piece).some((b,i)=>{
+  return getBlocks(piece).some(b=>{
     let x=piece.x+b.x;
     let y=piece.y+b.y;
     return x<0||x>=COLS||y>=ROWS||(y>=0&&grid[y][x]);
@@ -164,10 +169,12 @@ function lock(){
 
 function resolve(){
   let changed=true;
+  let chain=0;
 
   while(changed){
     changed=false;
     let remove=[];
+    let isHorizontal=false;
 
     for(let y=0;y<ROWS;y++){
       for(let x=0;x<COLS;x++){
@@ -179,6 +186,7 @@ function resolve(){
           c.color===grid[y][x+2]?.color &&
           c.color===grid[y][x+3]?.color){
           remove.push([x,y],[x+1,y],[x+2,y],[x+3,y]);
+          isHorizontal=true;
         }
 
         if(y<ROWS-3 &&
@@ -192,15 +200,37 @@ function resolve(){
 
     if(remove.length>0){
       changed=true;
+      chain++;
+
+      let virusThisTurn=0;
 
       remove.forEach(([x,y])=>{
-        if(grid[y][x]?.virus) virusCount--;
+        if(grid[y][x]?.virus){
+          virusCount--;
+          totalVirus++;
+          virusThisTurn++;
+        }
         grid[y][x]=null;
       });
+
+      // スコア
+      score += virusThisTurn * 100 * chain;
+
+      // 2個以上同時消し
+      if(virusThisTurn >= 2){
+        multi2++;
+      }
+
+      // 横消し
+      if(isHorizontal && virusThisTurn>0){
+        horizontal++;
+      }
 
       gravity();
     }
   }
+
+  updateUI();
 
   if(virusCount===0){
     gameClear();
@@ -223,12 +253,24 @@ function gravity(){
   }
 }
 
+function updateUI(){
+  scoreEl.textContent=score;
+  totalVirusEl.textContent=totalVirus;
+  multi2El.textContent=multi2;
+  horizontalEl.textContent=horizontal;
+}
+
+const scoreEl=document.getElementById("score");
+const totalVirusEl=document.getElementById("totalVirus");
+const multi2El=document.getElementById("multi2");
+const horizontalEl=document.getElementById("horizontal");
+
 function gameClear(){
   gameActive=false;
   const ctx=game.getContext("2d");
   ctx.fillStyle="white";
-  ctx.font="20px sans-serif";
-  ctx.fillText("CLEAR!",40,180);
+  ctx.font="18px sans-serif";
+  ctx.fillText("おめでとう🎊",20,180);
 
   setTimeout(()=>{
     initGame();
@@ -236,7 +278,7 @@ function gameClear(){
   },2000);
 }
 
-// ★速度さらに半分（2秒）
+// 速度（2秒）
 setInterval(()=>{
   drop();
   draw();
